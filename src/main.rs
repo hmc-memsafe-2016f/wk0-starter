@@ -30,7 +30,7 @@ struct Move {
 
 impl Move {
     fn new(from: Peg, to: Peg) -> Move {
-        unimplemented!()
+        Move { from: from, to: to }
     }
 }
 
@@ -74,8 +74,10 @@ impl HanoiError {
     fn description(&self) -> String {
         match *self {
             HanoiError::UnknownCommand => format!("Unknown Command"),
-            HanoiError::UnstableStack(peg, Disk(size)) => unimplemented!(),
-            HanoiError::EmptyFrom(peg) => unimplemented!(),
+            HanoiError::UnstableStack(peg, Disk(size)) =>
+                format!("A disk of size {} can't go on peg {:?}: there's already a smaller disk",
+                        size, peg),
+            HanoiError::EmptyFrom(peg) => format!("Can't move from {:?} because it's empty", peg),
         }
     }
 }
@@ -99,28 +101,38 @@ impl State {
 
     /// Creates a Towers of Hanoi game with `disks` disks in a single tower
     fn new(disks: u8) -> State {
-        unimplemented!()
+        State {
+            left: (1..(disks+1)).rev().map(Disk).collect(),
+            center: Vec::new(),
+            right: Vec::new(),
+        }
     }
 
     /// Mutably borrow the tower for `peg`
     fn get_tower_mut(&mut self, peg: Peg) -> &mut Vec<Disk> {
-        unimplemented!()
+        match peg {
+            Peg::Left => &mut self.left,
+            Peg::Center => &mut self.center,
+            Peg::Right => &mut self.right,
+        }
     }
 
     /// Immutably borrow the tower for `peg`
     fn get_tower(&self, peg: Peg) -> &Vec<Disk> {
-        unimplemented!()
+        match peg {
+            Peg::Left => &self.left,
+            Peg::Center => &self.center,
+            Peg::Right => &self.right,
+        }
     }
 
     /// Pop the top disk off `peg`, if possible
     fn pop_disk(&mut self, peg: Peg) -> Option<Disk> {
-        unimplemented!()
+        self.get_tower_mut(peg).pop()
     }
 
     /// Get a copy of the top disk on `peg`, if possible
     fn peek_disk(&self, peg: Peg) -> Option<Disk> {
-        // Despite all of our types being `Copy`, `Vec::last` still borrows the last element, so we
-        // need to explicitly clone it.
         self.get_tower(peg).last().cloned()
     }
 
@@ -131,12 +143,18 @@ impl State {
     /// `HanoiError::UnstableStack` if this operation attempted to put `disk` on a smaller
     /// disk.
     fn push_disk(&mut self, peg: Peg, disk: Disk) -> Result<(), HanoiError> {
-        unimplemented!()
+        match self.peek_disk(peg) {
+            Some(covered_disk) if covered_disk < disk => {
+                return Err(HanoiError::UnstableStack(peg, disk));
+            },
+            _ => (),
+        };
+        Ok(self.get_tower_mut(peg).push(disk))
     }
 
     /// Returns true if the game has been won!
     fn done(&self) -> bool {
-        unimplemented!()
+        (self.left.len() == 0) && (self.center.len() == 0 || self.right.len() == 0)
     }
 
     /// Executes the given move.
@@ -149,27 +167,24 @@ impl State {
     ///
     /// No change is made to `self` if an error occurs.
     fn do_move(&mut self, mov: Move) -> Result<NextStep, HanoiError> {
-        unimplemented!()
+        let disk = try!(self.peek_disk(mov.from).ok_or(HanoiError::EmptyFrom(mov.from)));
+        try!(self.push_disk(mov.to, disk));
+        self.pop_disk(mov.from);
+        Ok(if self.done() { NextStep::Win } else { NextStep::Continue })
     }
 
     /// Prints the contents of `peg` to stdout
     fn print_peg(&self, peg: Peg) {
-
-        // Make a string of disk sizes
         let mut string = String::new();
         for &Disk(ref size) in self.get_tower(peg) {
-            // Write the size onto the string, `unwrap` will never panic here because writing onto
-            // a String is gauranteed to succeed.
             write!(string, "{} ", size).unwrap();
         }
-        string.pop(); // Pop off the trailing space.
-
+        string.pop();
         let peg_name = match peg {
             Peg::Left   => "  Left",
             Peg::Center => "Center",
             Peg::Right  => " Right",
         };
-
         println!("{}: {}", peg_name, string);
     }
 
