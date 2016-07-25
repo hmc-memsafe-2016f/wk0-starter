@@ -183,15 +183,12 @@ fn main() {
         io::stdin().read_line(&mut line).unwrap();
 
         // Parse and perform action
-        let next_step = parse_action(line.as_str().trim()).and_then(|action| {
-            match action {
-                Action::Quit => Ok(NextStep::Quit),
-                Action::Move(mov) => state.do_move(mov),
-            }
+        let next_step_or_err = parse_action(line.as_str().trim()).and_then(|action| {
+            unimplemented!()
         });
 
         // Handle the next step
-        match next_step {
+        match next_step_or_err {
             Ok(NextStep::Quit) => {
                 println!("Quiting");
                 break;
