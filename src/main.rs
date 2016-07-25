@@ -2,17 +2,21 @@ use std::{env,io};
 use std::fmt::Write;
 use std::str::FromStr;
 
+/// A single disk, identified by its size.
 #[derive(PartialEq,Eq,PartialOrd,Ord,Clone,Copy,Debug)]
 struct Disk(u8);
 
 const START_SIZE: u8 = 3;
 
+/// The state of the game, represented by a vector of `Disk`s on each peg.
+/// The bottom of each peg is the front of each vector.
 struct State {
     left: Vec<Disk>,
     center: Vec<Disk>,
     right: Vec<Disk>,
 }
 
+/// A move operation from one peg to another. Note: the move may not actually be allowed!
 #[derive(PartialEq,Eq,Clone,Copy,Debug)]
 struct Move {
     from: Peg,
@@ -25,17 +29,20 @@ impl Move {
     }
 }
 
+/// An indentifier for a peg
 #[derive(PartialEq,Eq,Clone,Copy,Debug)]
 enum Peg {
     Left, Center, Right
 }
 
+/// An action inputted by the user
 #[derive(PartialEq,Eq,Clone,Copy,Debug)]
 enum Action {
     Move(Move),
     Quit,
 }
 
+/// The next step the game should take. Produced after a user instruction is processed.
 #[derive(PartialEq,Eq,Clone,Copy,Debug)]
 enum NextStep {
     Quit,
@@ -43,6 +50,7 @@ enum NextStep {
     Continue,
 }
 
+/// An error that might arise while processing a user instruction.
 #[derive(PartialEq,Eq,Debug)]
 enum HanoiError {
     UnknownCommand,
@@ -60,17 +68,19 @@ impl HanoiError {
     }
 }
 
+
+/// Parses the input into a [potential] use action.
+///
+/// Acceptable commands:
+///    * `q`: Quit
+///    * `PQ`: Move the top disk from P into Q, where P, Q are in ['l', 'c', 'r']
+///
+/// ## Returns
+///
+///    * `Action`: if the input was well formed
+///    * `Hanoi::UnknownCommand`: otherwise
 fn parse_action(input: &str) -> Result<Action,HanoiError> {
-    match input {
-        "q" => Ok(Action::Quit),
-        "lc" => Ok(Action::Move(Move::new(Peg::Left, Peg::Center))),
-        "lr" => Ok(Action::Move(Move::new(Peg::Left, Peg::Right))),
-        "cl" => Ok(Action::Move(Move::new(Peg::Center, Peg::Left))),
-        "cr" => Ok(Action::Move(Move::new(Peg::Center, Peg::Right))),
-        "rl" => Ok(Action::Move(Move::new(Peg::Right, Peg::Left))),
-        "rc" => Ok(Action::Move(Move::new(Peg::Right, Peg::Center))),
-        _ => Err(HanoiError::UnknownCommand),
-    }
+    unimplemented!()
 }
 
 impl State {
