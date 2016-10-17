@@ -94,7 +94,16 @@ impl HanoiError {
 ///    * `Action`: if the input was well formed
 ///    * `Hanoi::UnknownCommand`: otherwise
 fn parse_action(input: &str) -> Result<Action,HanoiError> {
-    unimplemented!()
+    match input {
+        "lc" => Ok(Action::Move(Move::new(Peg::Left  , Peg::Center))),
+        "lr" => Ok(Action::Move(Move::new(Peg::Left  , Peg::Right ))),
+        "cl" => Ok(Action::Move(Move::new(Peg::Center, Peg::Left  ))),
+        "cr" => Ok(Action::Move(Move::new(Peg::Center, Peg::Right ))),
+        "rl" => Ok(Action::Move(Move::new(Peg::Right , Peg::Left  ))),
+        "rc" => Ok(Action::Move(Move::new(Peg::Right , Peg::Center))),
+        "q"  => Ok(Action::Quit),
+        _    => Err(HanoiError::UnknownCommand),
+    }
 }
 
 impl State {
@@ -211,7 +220,10 @@ fn main() {
 
         // Parse and perform action
         let next_step_or_err = parse_action(line.as_str().trim()).and_then(|action| {
-            unimplemented!()
+            match action {
+                Action::Move(mov) => state.do_move(mov),
+                Action::Quit => Ok(NextStep::Quit),
+            }
         });
 
         // Handle the next step
