@@ -1,3 +1,8 @@
+// Alex Ozdemir <aozdemir@hmc.edu> // <- Your name should replace this line!
+// Starter code for HMC's MemorySafe, week 0
+//
+// A command line game: Towers of Hanoi
+
 use std::{env,io};
 use std::fmt::Write;
 use std::str::FromStr;
@@ -38,15 +43,20 @@ enum Peg {
 /// An action inputted by the user
 #[derive(PartialEq,Eq,Clone,Copy,Debug)]
 enum Action {
+    /// Do this move
     Move(Move),
+    /// Quit the game
     Quit,
 }
 
 /// The next step the game should take. Produced after a user instruction is processed.
 #[derive(PartialEq,Eq,Clone,Copy,Debug)]
 enum NextStep {
+    /// Quit the Game
     Quit,
+    /// The user won -- congratulate them!
     Win,
+    /// Get another action from the user
     Continue,
 }
 
@@ -54,7 +64,9 @@ enum NextStep {
 #[derive(PartialEq,Eq,Debug)]
 enum HanoiError {
     UnknownCommand,
+    /// `Disk` cannot go on `Peg` because it's bigger than `Peg`'s top disk.
     UnstableStack(Peg, Disk),
+    /// You can't move from `Peg` because it's empty
     EmptyFrom(Peg),
 }
 
