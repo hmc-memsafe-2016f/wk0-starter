@@ -1,4 +1,4 @@
-// Alex Ozdemir <aozdemir@hmc.edu> // <- Your name should replace this line!
+// Michael Sheely <msheely@hmc.edu>
 // Starter code for HMC's MemorySafe, week 0
 //
 // A command line game: Towers of Hanoi
@@ -9,7 +9,8 @@ use std::str::FromStr;
 
 /// A single disk, identified by its size.
 #[derive(PartialEq,Eq,PartialOrd,Ord,Clone,Copy,Debug)]
-struct Disk(u8);
+struct Disk(u8);  
+// ^ This is a tuple struct, it has a name, member doesn't
 
 const START_SIZE: u8 = 3;
 
@@ -43,9 +44,9 @@ enum Peg {
 /// An action inputted by the user
 #[derive(PartialEq,Eq,Clone,Copy,Debug)]
 enum Action {
-    /// Do this move
+    /// The user can either make a move
     Move(Move),
-    /// Quit the game
+    /// or quit the game
     Quit,
 }
 
@@ -80,6 +81,15 @@ impl HanoiError {
     }
 }
 
+/// Yeilds a peg if user input one of ['l', 'c', 'r'], else None.
+fn charToPeg(c: char) -> Option<Peg> {
+    match c {
+        'l' => Some(Peg::Left),
+        'c' => Some(Peg::Center),
+        'r' => Some(Peg::Right),
+         _  => None,
+    }
+}
 
 /// Parses the input into a [potential] use action.
 ///
@@ -92,14 +102,27 @@ impl HanoiError {
 ///    * `Action`: if the input was well formed
 ///    * `Hanoi::UnknownCommand`: otherwise
 fn parse_action(input: &str) -> Result<Action,HanoiError> {
-    unimplemented!()
+    if input == "q" {
+      return Ok(Action::Quit);
+    }
+    let mut chars = input.chars();
+    let from_char = chars.next().and_then(charToPeg);
+    let to_char = chars.next().and_then(charToPeg);
+    match (from_char, to_char, chars.next()) {
+        (Some(from_peg), Some(to_peg), None) => Ok(Action::Move(Move{from: from_peg, to: to_peg})),
+        _ => Err(HanoiError::UnknownCommand),
+    }
 }
 
 impl State {
 
     /// Creates a Towers of Hanoi game with `disks` disks in a single tower
     fn new(disks: u8) -> State {
-        unimplemented!()
+        let mut vec = Vec::new();
+        for i in 1..disks { 
+            vec.push(Disk(i));
+        }
+        return State{left: vec.clone(), center: vec.clone(), right: vec.clone()};
     }
 
     /// Mutably borrow the tower for `peg`
@@ -109,7 +132,12 @@ impl State {
 
     /// Immutably borrow the tower for `peg`
     fn get_tower(&self, peg: Peg) -> &Vec<Disk> {
-        unimplemented!()
+        let tower = match peg {
+            Peg::Left   => &self.left,
+            Peg::Center => &self.center,
+            Peg::Right  => &self.right,
+        };
+        return tower;
     }
 
     /// Pop the top disk off `peg`, if possible
@@ -149,6 +177,7 @@ impl State {
     ///
     /// No change is made to `self` if an error occurs.
     fn do_move(&mut self, mov: Move) -> Result<NextStep, HanoiError> {
+        //Ok(NextStep::Continue)
         unimplemented!()
     }
 
@@ -196,8 +225,13 @@ fn main() {
 
         // Parse and perform action
         let next_step_or_err = parse_action(line.as_str().trim()).and_then(|action| {
-            unimplemented!()
+            match action {
+                Action::Quit => Ok(NextStep::Quit),
+                Action::Move(m) => state.do_move(m),
+            }
         });
+
+//Result<Action,HanoiError>
 
         // Handle the next step
         match next_step_or_err {
