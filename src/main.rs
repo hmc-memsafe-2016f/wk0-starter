@@ -1,5 +1,4 @@
-// Alex Ozdemir <aozdemir@hmc.edu> // <- Your name should replace this line!
-// Starter code for HMC's MemorySafe, week 0
+// Jackson Warley <jtwarley@gmail.com>
 //
 // A command line game: Towers of Hanoi
 
@@ -21,7 +20,8 @@ struct State {
     right: Vec<Disk>,
 }
 
-/// A move operation from one peg to another. Note: the move may not actually be allowed!
+/// A move operation from one peg to another.
+/// Note: the move may not actually be allowed!
 #[derive(PartialEq,Eq,Clone,Copy,Debug)]
 struct Move {
     from: Peg,
@@ -30,7 +30,10 @@ struct Move {
 
 impl Move {
     fn new(from: Peg, to: Peg) -> Move {
-        unimplemented!()
+        Move {
+            from: from,
+            to: to,
+        }
     }
 }
 
@@ -49,7 +52,8 @@ enum Action {
     Quit,
 }
 
-/// The next step the game should take. Produced after a user instruction is processed.
+/// The next step the game should take.
+/// Produced after a user instruction is processed.
 #[derive(PartialEq,Eq,Clone,Copy,Debug)]
 enum NextStep {
     /// Quit the Game
@@ -84,13 +88,13 @@ impl HanoiError {
 /// Parses the input into a [potential] use action.
 ///
 /// Acceptable commands:
-///    * `q`: Quit
-///    * `PQ`: Move the top disk from P into Q, where P, Q are in ['l', 'c', 'r']
+///   * `q`: Quit
+///   * `PQ`: Move the top disk from P into Q, where P, Q are in ['l', 'c', 'r']
 ///
 /// ## Returns
 ///
-///    * `Action`: if the input was well formed
-///    * `Hanoi::UnknownCommand`: otherwise
+///   * `Action`: if the input was well formed
+///   * `Hanoi::UnknownCommand`: otherwise
 fn parse_action(input: &str) -> Result<Action,HanoiError> {
     unimplemented!()
 }
@@ -119,8 +123,8 @@ impl State {
 
     /// Get a copy of the top disk on `peg`, if possible
     fn peek_disk(&self, peg: Peg) -> Option<Disk> {
-        // Despite all of our types being `Copy`, `Vec::last` still borrows the last element, so we
-        // need to explicitly clone it.
+        // Despite all of our types being `Copy`, `Vec::last` still borrows the
+        // last element, so we need to explicitly clone it.
         self.get_tower(peg).last().cloned()
     }
 
@@ -128,8 +132,8 @@ impl State {
     ///
     /// ## Returns
     ///
-    /// `HanoiError::UnstableStack` if this operation attempted to put `disk` on a smaller
-    /// disk.
+    /// `HanoiError::UnstableStack` if this operation attempted to put `disk` 
+    /// on a smaller disk.
     fn push_disk(&mut self, peg: Peg, disk: Disk) -> Result<(), HanoiError> {
         unimplemented!()
     }
@@ -158,8 +162,8 @@ impl State {
         // Make a string of disk sizes
         let mut string = String::new();
         for &Disk(ref size) in self.get_tower(peg) {
-            // Write the size onto the string, `unwrap` will never panic here because writing onto
-            // a String is gauranteed to succeed.
+            // Write the size onto the string, `unwrap` will never panic here
+            // because writing onto a String is gauranteed to succeed.
             write!(string, "{} ", size).unwrap();
         }
         string.pop(); // Pop off the trailing space.
