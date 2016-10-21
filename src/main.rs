@@ -46,6 +46,8 @@ enum Peg {
 enum Action {
     /// Do this move
     Move(Move),
+    /// Make an automatic move
+    Auto,
     /// Quit the game
     Quit,
 }
@@ -92,6 +94,7 @@ impl HanoiError {
 ///    * `q`: Quit
 ///    * `PQ`: Move the top disk from P into Q, where P, Q are in ['l', 'c',
 ///            'r']
+///    * `a`: Make an automatic move
 ///
 /// ## Returns
 ///
@@ -101,6 +104,7 @@ fn parse_action(input: &str) -> Result<Action,HanoiError> {
     if input.len() == 1 {
         return match input.chars().nth(0).unwrap() {
             'q' => Ok(Action::Quit),
+            'a' => Ok(Action::Auto),
             _ => Err(HanoiError::UnknownCommand),
         };
     }
@@ -217,6 +221,86 @@ impl State {
         }
     }
 
+
+    /// Executes an automatic move
+    ///
+    /// ## Returns
+    ///    * `NextStep::Win` if the user won!
+    ///    * `NextStep::Continue` if the user didn't win
+    fn do_auto(&mut self) -> Result<NextStep, HanoiError> {
+        // Strategy: First, find the destination peg (current peg that largest
+        // disk is on, or right peg if not). Next, find the largest disk n that
+        // is not on the destination peg. If we can move it, do so. Otherwise,
+        // recurse trying to move the n-1 disk to the peg that is neither the
+        // destination peg nor n's peg.
+
+        let largest_left  = match self.left.first(){Some(&Disk(sz))=>sz,_=>0};
+        let largest_center= match self.center.first(){Some(&Disk(sz))=>sz,_=>0};
+        let largest_right = match self.right.first(){Some(&Disk(sz))=>sz,_=>0};
+        let largest = [largest_left, largest_center, largest_right]
+                            .iter().max().unwrap().clone();
+
+        let dest_peg = if self.center.first() == Some(&Disk(largest)) {
+            Peg::Center
+        } else {
+            Peg::Right
+        };
+
+        let mut largest_not_on_dest = largest;
+        for e in self.get_tower(dest_peg).iter() {
+            if e == &Disk(largest_not_on_dest) {
+                largest_not_on_dest -= 1;
+            } else {
+                break;
+            }
+        }
+
+        //println!("Largest not on dest = {}", largest_not_on_dest);
+
+        fn find_disk(st: &State, disk: Disk) -> Peg {
+            if let Some(_) = st.left.iter().position(|&d| d == disk) {
+                Peg::Left
+            } else if let Some(_) = st.center.iter().position(|&d| d == disk) {
+                Peg::Center
+            } else {
+                Peg::Right
+            }
+        };
+
+        fn odd_one_out(p1: Peg, p2: Peg) -> Peg {
+            match (p1, p2) {
+                (Peg::Left, Peg::Center) => Peg::Right,
+                (Peg::Center, Peg::Left) => Peg::Right,
+                (Peg::Left, Peg::Right) => Peg::Center,
+                (Peg::Right, Peg::Left) => Peg::Center,
+                (Peg::Center, Peg::Right) => Peg::Left,
+                (Peg::Right, Peg::Center) => Peg::Left,
+                _ => unreachable!(),
+            }
+        }
+
+        let mut move_to = dest_peg;
+        for sz in (1..largest_not_on_dest+1).rev() {
+            let peg = find_disk(self, Disk(sz));
+
+            //println!("Want to move disk {:?} to peg {:?}", Disk(sz), move_to);
+
+            if peg != move_to {
+                if self.get_tower(peg).last() == Some(&Disk(sz)) {
+                    match self.do_move(Move::new(peg, move_to)) {
+                        Ok(next) => return Ok(next),
+                        Err(HanoiError::UnstableStack(_,_)) =>
+                            move_to = odd_one_out(peg, move_to),
+                        _ => unreachable!(),
+                    }
+                } else {
+                    move_to = odd_one_out(peg, move_to)
+                }
+            }
+        }
+        unreachable!()
+    }
+
     /// Prints the contents of `peg` to stdout
     fn print_peg(&self, peg: Peg) {
 
@@ -265,6 +349,7 @@ fn main() {
             .and_then(|action| {
                 match action {
                     Action::Move(m) => state.do_move(m),
+                    Action::Auto => state.do_auto(),
                     Action::Quit => Ok(NextStep::Quit),
                 }
             });
