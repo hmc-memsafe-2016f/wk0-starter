@@ -6,6 +6,7 @@
 use std::{env,io};
 use std::fmt::Write;
 use std::str::FromStr;
+use std::cmp;
 
 /// A single disk, identified by its size.
 #[derive(PartialEq,Eq,PartialOrd,Ord,Clone,Copy,Debug)]
@@ -240,22 +241,17 @@ impl State {
         let largest = [largest_left, largest_center, largest_right]
                             .iter().max().unwrap().clone();
 
-        let dest_peg = if self.center.first() == Some(&Disk(largest)) {
-            Peg::Center
-        } else {
+        let largest_not_on_start = cmp::max(largest_center, largest_right);
+        let dest_peg = if largest_not_on_start == 0 {
             Peg::Right
+        } else {
+            if (largest_center == largest_not_on_start) ^
+                ((largest - largest_not_on_start) % 2 == 1) {
+                    Peg::Center
+                } else {
+                    Peg::Right
+                }
         };
-
-        let mut largest_not_on_dest = largest;
-        for e in self.get_tower(dest_peg).iter() {
-            if e == &Disk(largest_not_on_dest) {
-                largest_not_on_dest -= 1;
-            } else {
-                break;
-            }
-        }
-
-        //println!("Largest not on dest = {}", largest_not_on_dest);
 
         fn find_disk(st: &State, disk: Disk) -> Peg {
             if let Some(_) = st.left.iter().position(|&d| d == disk) {
@@ -331,7 +327,12 @@ fn main() {
     // `None` if no argument was provided or if the parse failed.
     let user_start_size = env::args().nth(1)
         .and_then(|arg| u8::from_str(arg.as_str()).ok());
-    let mut state = State::new(user_start_size.unwrap_or(START_SIZE));
+    let num_disks = user_start_size.unwrap_or(START_SIZE);
+    if num_disks == 0 {
+        println!("Need to have positive number of disks");
+        return;
+    }
+    let mut state = State::new(num_disks);
 
     // We'll read input into here.
     let mut line = String::new();
