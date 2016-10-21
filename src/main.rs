@@ -280,22 +280,18 @@ impl State {
         }
 
         let mut move_to = dest_peg;
-        for sz in (1..largest_not_on_dest+1).rev() {
+        for sz in (1..largest+1).rev() {
             let peg = find_disk(self, Disk(sz));
 
             //println!("Want to move disk {:?} to peg {:?}", Disk(sz), move_to);
 
             if peg != move_to {
                 if self.get_tower(peg).last() == Some(&Disk(sz)) {
-                    match self.do_move(Move::new(peg, move_to)) {
-                        Ok(next) => return Ok(next),
-                        Err(HanoiError::UnstableStack(_,_)) =>
-                            move_to = odd_one_out(peg, move_to),
-                        _ => unreachable!(),
+                    if let Ok(r) = self.do_move(Move::new(peg, move_to)) {
+                        return Ok(r);
                     }
-                } else {
-                    move_to = odd_one_out(peg, move_to)
                 }
+                move_to = odd_one_out(peg, move_to)
             }
         }
         unreachable!()
