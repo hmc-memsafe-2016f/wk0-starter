@@ -21,7 +21,8 @@ struct State {
     right: Vec<Disk>,
 }
 
-/// A move operation from one peg to another. Note: the move may not actually be allowed!
+/// A move operation from one peg to another. Note: the move may not actually be
+/// allowed!
 #[derive(PartialEq,Eq,Clone,Copy,Debug)]
 struct Move {
     from: Peg,
@@ -49,7 +50,8 @@ enum Action {
     Quit,
 }
 
-/// The next step the game should take. Produced after a user instruction is processed.
+/// The next step the game should take. Produced after a user instruction is
+/// processed.
 #[derive(PartialEq,Eq,Clone,Copy,Debug)]
 enum NextStep {
     /// Quit the Game
@@ -75,8 +77,8 @@ impl HanoiError {
         match *self {
             HanoiError::UnknownCommand => format!("Unknown Command"),
             HanoiError::UnstableStack(peg, Disk(size)) => format!("Cannot move \
-                disk of size {} to peg {:?} because the disk is larger than the \
-                top disk on that peg.", size, peg),
+                disk of size {} to peg {:?} because the disk is larger than \
+                the top disk on that peg.", size, peg),
             HanoiError::EmptyFrom(peg) => format!("Cannot move disk from peg \
                 {:?} because the peg is empty", peg),
         }
@@ -88,15 +90,19 @@ impl HanoiError {
 ///
 /// Acceptable commands:
 ///    * `q`: Quit
-///    * `PQ`: Move the top disk from P into Q, where P, Q are in ['l', 'c', 'r']
+///    * `PQ`: Move the top disk from P into Q, where P, Q are in ['l', 'c',
+///            'r']
 ///
 /// ## Returns
 ///
 ///    * `Action`: if the input was well formed
 ///    * `HanoiError::UnknownCommand`: otherwise
 fn parse_action(input: &str) -> Result<Action,HanoiError> {
-    if input.len() == 1 && input.chars().nth(0).unwrap() == 'q' {
-        return Ok(Action::Quit);
+    if input.len() == 1 {
+        return match input.chars().nth(0).unwrap() {
+            'q' => Ok(Action::Quit),
+            _ => Err(HanoiError::UnknownCommand),
+        };
     }
 
     if input.len() != 2 {
@@ -123,7 +129,8 @@ impl State {
 
     /// Creates a Towers of Hanoi game with `disks` disks in a single tower
     fn new(disks: u8) -> State {
-        State{left: (1..disks+1).rev().map(|n| Disk(n)).collect(), center: Vec::new(), right: Vec::new()}
+        State{left: (1..disks+1).rev().map(|n| Disk(n)).collect(),
+              center: Vec::new(), right: Vec::new()}
     }
 
     /// Mutably borrow the tower for `peg`
@@ -151,8 +158,8 @@ impl State {
 
     /// Get a copy of the top disk on `peg`, if possible
     fn peek_disk(&self, peg: Peg) -> Option<Disk> {
-        // Despite all of our types being `Copy`, `Vec::last` still borrows the last element, so we
-        // need to explicitly clone it.
+        // Despite all of our types being `Copy`, `Vec::last` still borrows the
+        // last element, so we need to explicitly clone it.
         self.get_tower(peg).last().cloned()
     }
 
@@ -160,8 +167,8 @@ impl State {
     ///
     /// ## Returns
     ///
-    /// `HanoiError::UnstableStack` if this operation attempted to put `disk` on a smaller
-    /// disk.
+    /// `HanoiError::UnstableStack` if this operation attempted to put `disk` on
+    /// a smaller disk.
     fn push_disk(&mut self, peg: Peg, disk: Disk) -> Result<(), HanoiError> {
         let disk_size = match disk { Disk(sz) => sz };
         let top_size = match self.peek_disk(peg) {
@@ -178,7 +185,8 @@ impl State {
 
     /// Returns true if the game has been won!
     fn done(&self) -> bool {
-        self.left.is_empty() && (self.right.is_empty() || self.center.is_empty())
+        self.left.is_empty()
+            && (self.right.is_empty() || self.center.is_empty())
     }
 
     /// Executes the given move.
@@ -187,7 +195,8 @@ impl State {
     ///    * `NextStep::Win` if the user won!
     ///    * `NextStep::Continue` if the move worked, but the user didn't win
     ///    * `HanoiError::EmptyFrom` if the `mov.from` was empty
-    ///    * `HanoiError::UnstableStack` if the move tried to put a larger disk on a smaller one
+    ///    * `HanoiError::UnstableStack` if the move tried to put a larger disk
+    ///      on a smaller one
     ///
     /// No change is made to `self` if an error occurs.
     fn do_move(&mut self, mov: Move) -> Result<NextStep, HanoiError> {
@@ -214,8 +223,8 @@ impl State {
         // Make a string of disk sizes
         let mut string = String::new();
         for &Disk(ref size) in self.get_tower(peg) {
-            // Write the size onto the string, `unwrap` will never panic here because writing onto
-            // a String is gauranteed to succeed.
+            // Write the size onto the string, `unwrap` will never panic here
+            // because writing onto a String is gauranteed to succeed.
             write!(string, "{} ", size).unwrap();
         }
         string.pop(); // Pop off the trailing space.
@@ -240,7 +249,8 @@ impl State {
 fn main() {
     // Reads the first command line arguments and parses it an integer.
     // `None` if no argument was provided or if the parse failed.
-    let user_start_size = env::args().nth(1).and_then(|arg| u8::from_str(arg.as_str()).ok());
+    let user_start_size = env::args().nth(1)
+        .and_then(|arg| u8::from_str(arg.as_str()).ok());
     let mut state = State::new(user_start_size.unwrap_or(START_SIZE));
 
     // We'll read input into here.
@@ -251,12 +261,13 @@ fn main() {
         io::stdin().read_line(&mut line).unwrap();
 
         // Parse and perform action
-        let next_step_or_err = parse_action(line.as_str().trim()).and_then(|action| {
-            match action {
-                Action::Move(m) => state.do_move(m),
-                Action::Quit => Ok(NextStep::Quit),
-            }
-        });
+        let next_step_or_err = parse_action(line.as_str().trim())
+            .and_then(|action| {
+                match action {
+                    Action::Move(m) => state.do_move(m),
+                    Action::Quit => Ok(NextStep::Quit),
+                }
+            });
 
         // Handle the next step
         match next_step_or_err {
