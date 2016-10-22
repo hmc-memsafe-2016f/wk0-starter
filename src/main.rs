@@ -1,4 +1,4 @@
-// Adam Dunlap <adunlap@hmc.edU> // <- Your name should replace this line!
+// Adam Dunlap <adunlap@hmc.edU>
 // Starter code for HMC's MemorySafe, week 0
 //
 // A command line game: Towers of Hanoi
