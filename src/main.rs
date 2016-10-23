@@ -3,10 +3,16 @@
 //
 // A command line game: Towers of Hanoi
 
-use std::{env,io};
-use std::fmt::Write;
+extern crate sfml;
+
+use std::{env};
 use std::str::FromStr;
 use std::cmp;
+use sfml::window::{ContextSettings, VideoMode, event, window_style, MouseButton,
+                   Key};
+use sfml::graphics::{RenderWindow, RenderTarget, Color, Transformable, Shape,
+                     RectangleShape};
+use sfml::system::{ToVec, Vector2i};
 
 /// A single disk, identified by its size.
 #[derive(PartialEq,Eq,PartialOrd,Ord,Clone,Copy,Debug)]
@@ -42,23 +48,10 @@ enum Peg {
     Left, Center, Right
 }
 
-/// An action inputted by the user
-#[derive(PartialEq,Eq,Clone,Copy,Debug)]
-enum Action {
-    /// Do this move
-    Move(Move),
-    /// Make an automatic move
-    Auto,
-    /// Quit the game
-    Quit,
-}
-
 /// The next step the game should take. Produced after a user instruction is
 /// processed.
 #[derive(PartialEq,Eq,Clone,Copy,Debug)]
 enum NextStep {
-    /// Quit the Game
-    Quit,
     /// The user won -- congratulate them!
     Win,
     /// Get another action from the user
@@ -68,66 +61,12 @@ enum NextStep {
 /// An error that might arise while processing a user instruction.
 #[derive(PartialEq,Eq,Debug)]
 enum HanoiError {
-    UnknownCommand,
     /// `Disk` cannot go on `Peg` because it's bigger than `Peg`'s top disk.
     UnstableStack(Peg, Disk),
     /// You can't move from `Peg` because it's empty
     EmptyFrom(Peg),
-}
-
-impl HanoiError {
-    fn description(&self) -> String {
-        match *self {
-            HanoiError::UnknownCommand => format!("Unknown Command"),
-            HanoiError::UnstableStack(peg, Disk(size)) => format!("Cannot move \
-                disk of size {} to peg {:?} because the disk is larger than \
-                the top disk on that peg.", size, peg),
-            HanoiError::EmptyFrom(peg) => format!("Cannot move disk from peg \
-                {:?} because the peg is empty", peg),
-        }
-    }
-}
-
-
-/// Parses the input into a [potential] use action.
-///
-/// Acceptable commands:
-///    * `q`: Quit
-///    * `PQ`: Move the top disk from P into Q, where P, Q are in ['l', 'c',
-///            'r']
-///    * `a`: Make an automatic move
-///
-/// ## Returns
-///
-///    * `Action`: if the input was well formed
-///    * `HanoiError::UnknownCommand`: otherwise
-fn parse_action(input: &str) -> Result<Action,HanoiError> {
-    if input.len() == 1 {
-        return match input.chars().nth(0).unwrap() {
-            'q' => Ok(Action::Quit),
-            'a' => Ok(Action::Auto),
-            _ => Err(HanoiError::UnknownCommand),
-        };
-    }
-
-    if input.len() != 2 {
-        return Err(HanoiError::UnknownCommand);
-    }
-
-    let from = match input.chars().nth(0).unwrap() {
-        'l' => Peg::Left,
-        'c' => Peg::Center,
-        'r' => Peg::Right,
-        _ => return Err(HanoiError::UnknownCommand),
-    };
-    let to = match input.chars().nth(1).unwrap() {
-        'l' => Peg::Left,
-        'c' => Peg::Center,
-        'r' => Peg::Right,
-        _ => return Err(HanoiError::UnknownCommand),
-    };
-
-    Ok(Action::Move(Move::new(from, to)))
+    /// Autosolver can't make a move because it's already solved
+    AlreadyDone,
 }
 
 impl State {
@@ -205,20 +144,31 @@ impl State {
     ///
     /// No change is made to `self` if an error occurs.
     fn do_move(&mut self, mov: Move) -> Result<NextStep, HanoiError> {
-        if let Some(disk) = self.pop_disk(mov.from) {
-            match self.push_disk(mov.to, disk) {
-                Ok(()) => if self.done() {
+        if let Some(err) = self.can_move(mov) {
+            Err(err)
+        } else {
+            let disk = self.pop_disk(mov.from).unwrap();
+            assert_eq!(self.push_disk(mov.to, disk), Ok(()));
+            if self.done() {
                     Ok(NextStep::Win)
                 } else {
                     Ok(NextStep::Continue)
-                },
-                Err(e) => {
-                    assert_eq!(self.push_disk(mov.from, disk), Ok(()));
-                    Err(e)
-                },
+                }
+        }
+    }
+
+    fn can_move(&self, mov: Move) -> Option<HanoiError> {
+        if let Some(Disk(from_sz)) = self.peek_disk(mov.from) {
+            let Disk(to_sz) = self.peek_disk(mov.to)
+                                  .unwrap_or(Disk(u8::max_value()));
+
+            if from_sz <= to_sz {
+                None
+            } else {
+                Some(HanoiError::UnstableStack(mov.to, Disk(to_sz)))
             }
         } else {
-            Err(HanoiError::EmptyFrom(mov.from))
+            Some(HanoiError::EmptyFrom(mov.from))
         }
     }
 
@@ -279,8 +229,6 @@ impl State {
         for sz in (1..largest+1).rev() {
             let peg = find_disk(self, Disk(sz));
 
-            //println!("Want to move disk {:?} to peg {:?}", Disk(sz), move_to);
-
             if peg != move_to {
                 if self.get_tower(peg).last() == Some(&Disk(sz)) {
                     if let Ok(r) = self.do_move(Move::new(peg, move_to)) {
@@ -290,35 +238,27 @@ impl State {
                 move_to = odd_one_out(peg, move_to)
             }
         }
-        unreachable!()
+        Err(HanoiError::AlreadyDone)
     }
+}
 
-    /// Prints the contents of `peg` to stdout
-    fn print_peg(&self, peg: Peg) {
+const DISK_HT: usize = 20;
+const DISK_WD: usize = 20;
+const DISK_GAP: usize = 5;
 
-        // Make a string of disk sizes
-        let mut string = String::new();
-        for &Disk(ref size) in self.get_tower(peg) {
-            // Write the size onto the string, `unwrap` will never panic here
-            // because writing onto a String is gauranteed to succeed.
-            write!(string, "{} ", size).unwrap();
+fn peg_at_pos(win_wd: usize, win_ht: usize, x: i32, y: i32) -> Option<Peg> {
+    let win_wd = win_wd as i32;
+    let win_ht = win_ht as i32;
+    if x < 0 || x >= win_wd  || y < 0 || y >= win_ht {
+        None
+    } else {
+        if x < win_wd/3 {
+            Some(Peg::Left)
+        } else if x < 2*win_wd/3 {
+            Some(Peg::Center)
+        } else {
+            Some(Peg::Right)
         }
-        string.pop(); // Pop off the trailing space.
-
-        let peg_name = match peg {
-            Peg::Left   => "  Left",
-            Peg::Center => "Center",
-            Peg::Right  => " Right",
-        };
-
-        println!("{}: {}", peg_name, string);
-    }
-
-    /// Prints the state of the game to stdout
-    fn print(&self) {
-        self.print_peg(Peg::Left);
-        self.print_peg(Peg::Center);
-        self.print_peg(Peg::Right);
     }
 }
 
@@ -332,41 +272,99 @@ fn main() {
         println!("Need to have positive number of disks");
         return;
     }
+
+    let win_wd = DISK_WD*(num_disks as usize)*3 + DISK_GAP*4;
+    let win_ht = DISK_HT * (num_disks as usize) + (DISK_GAP+1)
+                  * (num_disks as usize);
+
     let mut state = State::new(num_disks);
+    let mut window = RenderWindow::new(
+        VideoMode::new_init(win_wd as u32, win_ht as u32, 32),
+        "Hanoi",
+        window_style::DEFAULT_STYLE,
+        &ContextSettings::default()).unwrap();
 
-    // We'll read input into here.
-    let mut line = String::new();
-    loop {
-        state.print();
-        // Get input
-        io::stdin().read_line(&mut line).unwrap();
+    window.set_framerate_limit(60);
 
-        // Parse and perform action
-        let next_step_or_err = parse_action(line.as_str().trim())
-            .and_then(|action| {
-                match action {
-                    Action::Move(m) => state.do_move(m),
-                    Action::Auto => state.do_auto(),
-                    Action::Quit => Ok(NextStep::Quit),
-                }
-            });
+    let mut disk_held: Option<(Disk, Peg)> = None;
 
-        // Handle the next step
-        match next_step_or_err {
-            Ok(NextStep::Quit) => {
-                println!("Quiting");
-                break;
+    while window.is_open() {
+        for event in window.events() {
+            match event {
+                event::Closed => window.close(),
+                event::MouseButtonPressed{button: MouseButton::Left, x, y} => {
+                    let from_peg = peg_at_pos(win_wd, win_ht, x,y);
+                    disk_held = from_peg.and_then(
+                        |p| state.peek_disk(p).map(|d| (d,p)));
+                },
+                event::MouseButtonReleased{button: MouseButton::Left, x, y} => {
+                    if let Some((_,from_peg)) = disk_held {
+                        if let Some(to_peg) = peg_at_pos(win_wd, win_ht, x, y) {
+                            let _ = state.do_move(Move::new(from_peg, to_peg));
+                        }
+                    }
+                    disk_held = None;
+                },
+                event::KeyPressed{code: Key::A, ..} => {
+                    let _ = state.do_auto();
+                },
+                event::KeyPressed{code: Key::Q, ..} => {
+                    window.close();
+                },
+                _ => ()
             }
-            Ok(NextStep::Win) => {
-                state.print();
-                println!("You won!");
-                break;
-            }
-            Ok(NextStep::Continue) => (),
-            Err(err) => println!("Error: {}", err.description()),
         }
 
-        // Make space for future input
-        line.clear();
+        window.clear(&Color::white());
+
+        let Vector2i{x: mouse_x, y: mouse_y} = window.get_mouse_position();
+        if let (Some((_,from_peg)), Some(mouse_peg))
+            = (disk_held, peg_at_pos(win_wd, win_ht, mouse_x, mouse_y)) {
+                   if from_peg != mouse_peg {
+
+                       let mut rect = RectangleShape::new().unwrap();
+                       rect.set_fill_color(&if None ==
+                           state.can_move(Move::new(from_peg, mouse_peg))
+                            {Color::green()} else {Color::red()});
+
+                       rect.set_size2f((win_wd as f32)/3., win_ht as f32);
+
+                       rect.set_position2f(match mouse_peg {
+                           Peg::Left => 0,
+                           Peg::Center => win_wd/3,
+                           Peg::Right => 2*win_wd/3,
+                       } as f32, 0.);
+
+                       let rect = rect;
+                       window.draw(&rect);
+                   }
+               }
+
+        for (horiz_place,peg) in
+            [Peg::Left, Peg::Center, Peg::Right].iter().enumerate() {
+                let x_pos = (horiz_place*2 + 1) * win_wd/6;
+                for (vert_place, &Disk(sz)) in
+                    state.get_tower(*peg).iter().enumerate() {
+
+                        let mut rect = RectangleShape::new().unwrap();
+                        let xsz = (sz as f32)*(DISK_WD as f32);
+                        let ysz = DISK_HT as f32;
+                        rect.set_origin2f(xsz/2., ysz/2.);
+                        rect.set_fill_color(&Color::blue());
+                        rect.set_size2f(xsz, ysz);
+                        if disk_held == Some((Disk(sz), *peg)) {
+                            rect.set_position(&window.get_mouse_position()
+                                                     .to_vector2f());
+                        } else {
+                            let y_pos = win_ht - ((DISK_HT + DISK_GAP) *
+                                vert_place + DISK_GAP + DISK_HT/2);
+                            rect.set_position2f(x_pos as f32, y_pos as f32);
+                        }
+                        let rect = rect;
+                        window.draw(&rect);
+                }
+        }
+
+        window.display();
     }
 }
