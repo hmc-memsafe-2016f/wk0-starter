@@ -1,7 +1,7 @@
 // Adam Dunlap <adunlap@hmc.edU>
-// Starter code for HMC's MemorySafe, week 0
+// Code for HMC's MemorySafe, week 0
 //
-// A command line game: Towers of Hanoi
+// A GUI game: Towers of Hanoi
 
 extern crate sfml;
 
@@ -308,6 +308,9 @@ fn main() {
                 event::KeyPressed{code: Key::A, ..} => {
                     let _ = state.do_auto();
                 },
+                event::KeyPressed{code: Key::R, ..} => {
+                    state = State::new(num_disks);
+                },
                 event::KeyPressed{code: Key::Q, ..} => {
                     window.close();
                 },
@@ -323,8 +326,8 @@ fn main() {
                    if from_peg != mouse_peg {
 
                        let mut rect = RectangleShape::new().unwrap();
-                       rect.set_fill_color(&if None ==
-                           state.can_move(Move::new(from_peg, mouse_peg))
+                       rect.set_fill_color(&if state.can_move(
+                               Move::new(from_peg, mouse_peg)).is_none()
                             {Color::green()} else {Color::red()});
 
                        rect.set_size2f((win_wd as f32)/3., win_ht as f32);
