@@ -1,6 +1,7 @@
 [package]
 name = "wk0-starter"
 version = "0.1.0"
-authors = ["Alex Ozdemir <aozdemir@hmc.edu>"]
+authors = ["Adam Dulnap <adunlap@hmc.edu>"]
 
 [dependencies]
+sfml = "0.11.2"
