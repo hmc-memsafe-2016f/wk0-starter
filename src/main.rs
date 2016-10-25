@@ -5,6 +5,8 @@
 //
 // It has been completed by Michael Sheely to form 
 // a functional command line game: Towers of Hanoi
+//
+// Talked to Jackson Warely and Adam Dunlap
 
 use std::{env,io};
 use std::fmt::Write;
