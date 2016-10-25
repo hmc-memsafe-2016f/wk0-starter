@@ -174,8 +174,9 @@ impl State {
     ///
     /// No change is made to `self` if an error occurs.
     fn do_move(&mut self, mov: Move) -> Result<NextStep, HanoiError> {
-        if let Some(disk) = self.pop_disk(mov.from) {
+        if let Some(disk) = self.peek_disk(mov.from) {
             try!(self.push_disk(mov.to, disk));
+            self.pop_disk(mov.from);
             if self.done() {
               Ok(NextStep::Win)
             } else {
