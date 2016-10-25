@@ -1,4 +1,4 @@
-// Alex Ozdemir <aozdemir@hmc.edu> // <- Your name should replace this line!
+// Daniel Sonner <djsonner@hmc.edu> // <- Your name should replace this line!
 // Starter code for HMC's MemorySafe, week 0
 //
 // A command line game: Towers of Hanoi
@@ -30,7 +30,8 @@ struct Move {
 
 impl Move {
     fn new(from: Peg, to: Peg) -> Move {
-        unimplemented!()
+        // was unimplemented
+        Move{from: from, to: to}
     }
 }
 
@@ -74,8 +75,9 @@ impl HanoiError {
     fn description(&self) -> String {
         match *self {
             HanoiError::UnknownCommand => format!("Unknown Command"),
-            HanoiError::UnstableStack(peg, Disk(size)) => unimplemented!(),
-            HanoiError::EmptyFrom(peg) => unimplemented!(),
+            // previously these two lines were unimplemented
+            HanoiError::UnstableStack(peg, Disk(size)) => format!("Unstable Stack"),
+            HanoiError::EmptyFrom(peg) => format!("Empty From"),
         }
     }
 }
@@ -92,29 +94,60 @@ impl HanoiError {
 ///    * `Action`: if the input was well formed
 ///    * `Hanoi::UnknownCommand`: otherwise
 fn parse_action(input: &str) -> Result<Action,HanoiError> {
-    unimplemented!()
+    // previously unimplemented
+    match input {
+        "q" => Ok(Action::Quit),
+        "lc" => Ok(Action::Move(Move::new(Peg::Left, Peg::Center))),
+        "lr" => Ok(Action::Move(Move::new(Peg::Left, Peg::Right))),
+        "cr" => Ok(Action::Move(Move::new(Peg::Center, Peg::Right))),
+        "cl" => Ok(Action::Move(Move::new(Peg::Center, Peg::Left))),
+        "rl" => Ok(Action::Move(Move::new(Peg::Right, Peg::Left))),
+        "rc" => Ok(Action::Move(Move::new(Peg::Right, Peg::Center))),
+        _ => Err(HanoiError::UnknownCommand)
+    }
 }
 
 impl State {
 
     /// Creates a Towers of Hanoi game with `disks` disks in a single tower
     fn new(disks: u8) -> State {
-        unimplemented!()
+        // previously unimplemented
+        let mut new_disk = Vec::new();
+        for x in 1..disks {
+            new_disk.push(Disk(x));
+        }
+        new_disk.reverse();
+        State {left: new_disk, center: Vec::new(), right: Vec::new()}
     }
 
     /// Mutably borrow the tower for `peg`
     fn get_tower_mut(&mut self, peg: Peg) -> &mut Vec<Disk> {
-        unimplemented!()
+        // previously unimplemented
+        match peg {
+            Peg::Left => &mut self.left,
+            Peg::Right => &mut self.right,
+            _ => &mut self.center
+        }
     }
 
     /// Immutably borrow the tower for `peg`
     fn get_tower(&self, peg: Peg) -> &Vec<Disk> {
-        unimplemented!()
+        // previously unimplemented
+        match peg {
+            Peg::Left => &self.left,
+            Peg::Right => &self.right,
+            _ => &self.center
+        }
     }
 
     /// Pop the top disk off `peg`, if possible
     fn pop_disk(&mut self, peg: Peg) -> Option<Disk> {
-        unimplemented!()
+        // previously unimplemented
+        match peg {
+            Peg::Left => self.left.pop(),
+            Peg::Right => self.right.pop(),
+            _ => self.center.pop()
+        }
     }
 
     /// Get a copy of the top disk on `peg`, if possible
@@ -131,12 +164,19 @@ impl State {
     /// `HanoiError::UnstableStack` if this operation attempted to put `disk` on a smaller
     /// disk.
     fn push_disk(&mut self, peg: Peg, disk: Disk) -> Result<(), HanoiError> {
-        unimplemented!()
+        // previously unimplemented
+        if self.peek_disk(peg) == None || self.peek_disk(peg) > Some(disk) {
+            Ok(self.get_tower_mut(peg).push(disk))
+        }
+        else {
+            Err(HanoiError::UnstableStack(peg, disk))
+        }
     }
 
     /// Returns true if the game has been won!
     fn done(&self) -> bool {
-        unimplemented!()
+        // previously unimplemented
+        self.left.is_empty() && self.center.is_empty()
     }
 
     /// Executes the given move.
@@ -149,7 +189,19 @@ impl State {
     ///
     /// No change is made to `self` if an error occurs.
     fn do_move(&mut self, mov: Move) -> Result<NextStep, HanoiError> {
-        unimplemented!()
+        // previosly unimplemented
+        let disk_to_move = self.peek_disk(mov.from);
+        match disk_to_move {
+            None => return Err(HanoiError::EmptyFrom(mov.from)),
+            Some(d) => try!(self.push_disk(mov.to, d))
+        }
+        self.pop_disk(mov.from);
+        if self.done() {
+            Ok(NextStep::Win)
+        }
+        else {
+            Ok(NextStep::Continue)
+        }
     }
 
     /// Prints the contents of `peg` to stdout
@@ -196,7 +248,11 @@ fn main() {
 
         // Parse and perform action
         let next_step_or_err = parse_action(line.as_str().trim()).and_then(|action| {
-            unimplemented!()
+            // previously unimplemented
+            match action {
+                Action::Quit => Ok(NextStep::Quit),
+                Action::Move(m) => state.do_move(m)
+            }
         });
 
         // Handle the next step
