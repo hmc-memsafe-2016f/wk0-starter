@@ -1,7 +1,12 @@
-// Alex Ozdemir <aozdemir@hmc.edu> // <- Your name should replace this line!
-// Starter code for HMC's MemorySafe, week 0
+// Michael Sheely <msheely@hmc.edu>
 //
-// A command line game: Towers of Hanoi
+// This file initially contained the 
+// starter code for HMC's MemorySafe, week 0.
+//
+// It has been completed by Michael Sheely to form 
+// a functional command line game: Towers of Hanoi
+//
+// Talked to Jackson Warely and Adam Dunlap
 
 use std::{env,io};
 use std::fmt::Write;
@@ -9,7 +14,8 @@ use std::str::FromStr;
 
 /// A single disk, identified by its size.
 #[derive(PartialEq,Eq,PartialOrd,Ord,Clone,Copy,Debug)]
-struct Disk(u8);
+struct Disk(u8);  
+// ^ This is a tuple struct, it has a name, member doesn't
 
 const START_SIZE: u8 = 3;
 
@@ -30,7 +36,7 @@ struct Move {
 
 impl Move {
     fn new(from: Peg, to: Peg) -> Move {
-        unimplemented!()
+        Move {from: from, to: to}
     }
 }
 
@@ -43,9 +49,9 @@ enum Peg {
 /// An action inputted by the user
 #[derive(PartialEq,Eq,Clone,Copy,Debug)]
 enum Action {
-    /// Do this move
+    /// The user can either make a move
     Move(Move),
-    /// Quit the game
+    /// or quit the game
     Quit,
 }
 
@@ -74,12 +80,22 @@ impl HanoiError {
     fn description(&self) -> String {
         match *self {
             HanoiError::UnknownCommand => format!("Unknown Command"),
-            HanoiError::UnstableStack(peg, Disk(size)) => unimplemented!(),
-            HanoiError::EmptyFrom(peg) => unimplemented!(),
+            HanoiError::UnstableStack(peg, Disk(size)) => 
+                format!("Unstable stack, tried to move disk of size {} onto the {:?} peg.", size, peg),
+            HanoiError::EmptyFrom(peg) => format!("The {:?} peg is empty.", peg),
         }
     }
 }
 
+/// Yeilds a peg if user input one of ['l', 'c', 'r'], else None.
+fn char_to_peg(c: char) -> Option<Peg> {
+    match c {
+        'l' => Some(Peg::Left),
+        'c' => Some(Peg::Center),
+        'r' => Some(Peg::Right),
+         _  => None,
+    }
+}
 
 /// Parses the input into a [potential] use action.
 ///
@@ -92,29 +108,51 @@ impl HanoiError {
 ///    * `Action`: if the input was well formed
 ///    * `Hanoi::UnknownCommand`: otherwise
 fn parse_action(input: &str) -> Result<Action,HanoiError> {
-    unimplemented!()
+    if input == "q" {
+      return Ok(Action::Quit);
+    }
+    let mut chars = input.chars();
+    let from = chars.next().and_then(char_to_peg);
+    let to = chars.next().and_then(char_to_peg);
+    match (from, to, chars.next()) {
+        (Some(from_peg), Some(to_peg), None) => Ok(Action::Move(Move::new(from_peg, to_peg))),
+        _ => Err(HanoiError::UnknownCommand),
+    }
 }
 
 impl State {
 
     /// Creates a Towers of Hanoi game with `disks` disks in a single tower
     fn new(disks: u8) -> State {
-        unimplemented!()
+        let mut vec = Vec::new();
+        for i in 0..disks { 
+            vec.push(Disk(disks - i));
+        }
+        return State{left: vec, center: Vec::new(), right: Vec::new()};
     }
 
     /// Mutably borrow the tower for `peg`
     fn get_tower_mut(&mut self, peg: Peg) -> &mut Vec<Disk> {
-        unimplemented!()
+        match peg {
+            Peg::Left => &mut self.left,
+            Peg::Center => &mut self.center,
+            Peg::Right => &mut self.right,
+        }
     }
 
     /// Immutably borrow the tower for `peg`
     fn get_tower(&self, peg: Peg) -> &Vec<Disk> {
-        unimplemented!()
+        let tower = match peg {
+            Peg::Left   => &self.left,
+            Peg::Center => &self.center,
+            Peg::Right  => &self.right,
+        };
+        return tower;
     }
 
     /// Pop the top disk off `peg`, if possible
     fn pop_disk(&mut self, peg: Peg) -> Option<Disk> {
-        unimplemented!()
+        self.get_tower_mut(peg).pop()
     }
 
     /// Get a copy of the top disk on `peg`, if possible
@@ -131,12 +169,25 @@ impl State {
     /// `HanoiError::UnstableStack` if this operation attempted to put `disk` on a smaller
     /// disk.
     fn push_disk(&mut self, peg: Peg, disk: Disk) -> Result<(), HanoiError> {
-        unimplemented!()
+        if Some(disk) > self.peek_disk(peg) && !self.get_tower(peg).is_empty() {
+            return Err(HanoiError::UnstableStack(peg, disk))
+        } else {
+        Ok(match peg {
+            Peg::Left => self.left.push(disk),
+            Peg::Center => self.center.push(disk),
+            Peg::Right => self.right.push(disk),
+          })
+        }
     }
 
     /// Returns true if the game has been won!
     fn done(&self) -> bool {
-        unimplemented!()
+        self.left.is_empty() && (self.center.is_empty() || self.right.is_empty())
+    }
+
+    /// Returns the next step of the algorithm, based on if we're done or not
+    fn next_step(&self) -> NextStep {
+        if self.done() { NextStep::Win } else { NextStep::Continue }
     }
 
     /// Executes the given move.
@@ -149,7 +200,16 @@ impl State {
     ///
     /// No change is made to `self` if an error occurs.
     fn do_move(&mut self, mov: Move) -> Result<NextStep, HanoiError> {
-        unimplemented!()
+        let Move{from, to} = mov;
+        let result = match self.peek_disk(from) {
+            // push_disk will not modify state if pushes if valid move
+            Some(disk) => self.push_disk(to, disk),
+            None => Err(HanoiError::EmptyFrom(from)),
+        };
+        match result {
+            Ok(()) => { self.pop_disk(from); Ok(self.next_step()) },
+            Err(e) => Err(e),
+        }
     }
 
     /// Prints the contents of `peg` to stdout
@@ -196,13 +256,16 @@ fn main() {
 
         // Parse and perform action
         let next_step_or_err = parse_action(line.as_str().trim()).and_then(|action| {
-            unimplemented!()
+            match action {
+                Action::Quit => Ok(NextStep::Quit),
+                Action::Move(m) => state.do_move(m),
+            }
         });
 
         // Handle the next step
         match next_step_or_err {
             Ok(NextStep::Quit) => {
-                println!("Quiting");
+                println!("Quitting");
                 break;
             }
             Ok(NextStep::Win) => {
