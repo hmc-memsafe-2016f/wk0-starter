@@ -113,8 +113,8 @@ impl State {
     fn new(disks: u8) -> State {
         // previously unimplemented
         let mut new_disk = Vec::new();
-        for x in 1..disks {
-            new_disk.push(Disk(x));
+        for x in 0..disks {
+            new_disk.push(Disk(x+1));
         }
         new_disk.reverse();
         State {left: new_disk, center: Vec::new(), right: Vec::new()}
