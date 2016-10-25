@@ -1,7 +1,10 @@
 // Michael Sheely <msheely@hmc.edu>
-// Starter code for HMC's MemorySafe, week 0
 //
-// A command line game: Towers of Hanoi
+// This file initially contained the 
+// starter code for HMC's MemorySafe, week 0.
+//
+// It has been completed by Michael Sheely to form 
+// a functional command line game: Towers of Hanoi
 
 use std::{env,io};
 use std::fmt::Write;
