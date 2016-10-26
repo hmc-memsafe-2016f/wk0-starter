@@ -112,7 +112,7 @@ impl State {
         State { left: (1..disks+1).rev().map(Disk).collect(),
                 center: Vec::new(),
                 right: Vec::new(),
-        };
+        }
     }
 
     /// Mutably borrow the tower for `peg`
@@ -121,16 +121,16 @@ impl State {
             Peg::Left => &mut self.left,
             Peg::Center => &mut self.center,
             Peg::Right => &mut self.right,
-        };
+        }
     }
 
     /// Immutably borrow the tower for `peg`
     fn get_tower(&self, peg: Peg) -> &Vec<Disk> {
         match peg {
-            Peg::Left => &mut self.left,
-            Peg::Center => &mut self.center,
-            Peg::Right => &mut self.right,
-        };
+            Peg::Left => & self.left,
+            Peg::Center => & self.center,
+            Peg::Right => & self.right,
+        }
     }
 
     /// Pop the top disk off `peg`, if possible
@@ -152,11 +152,11 @@ impl State {
     /// `HanoiError::UnstableStack` if this operation attempted to put `disk` on a smaller
     /// disk.
     fn push_disk(&mut self, peg: Peg, disk: Disk) -> Result<(), HanoiError> {
-        let topDiskSize = match self.peek_disk(peg) {
+        let top_disk_size = match self.peek_disk(peg) {
             None => u8::max_value(),
             Some(Disk(size)) => size,
-        }
-        if disk.0 > topDiskSize {
+        };
+        if disk.0 > top_disk_size {
             Err(HanoiError::UnstableStack(peg, disk))
         } else {
             self.get_tower_mut(peg).push(disk);
@@ -181,12 +181,12 @@ impl State {
     /// No change is made to `self` if an error occurs.
     fn do_move(&mut self, mov: Move) -> Result<NextStep, HanoiError> {
         if self.get_tower(mov.from).is_empty() {
-            HanoiError::EmptyFrom(mov.from)
+            return Err(HanoiError::EmptyFrom(mov.from))
         }
         let disk = self.peek_disk(mov.from);
-        match self.push_disk(mov.to, disk) {
+        match self.push_disk(mov.to, disk.unwrap()) {
             Ok(_) => {
-                self.pop_disk(mov.from)
+                self.pop_disk(mov.from);
                 if self.done() {
                     Ok(NextStep::Win)
                 } else {
@@ -244,6 +244,7 @@ fn main() {
             match action {
                 Action::Quit => Ok(NextStep::Quit),
                 Action::Move(mov) => state.do_move(mov),
+            }
         });
 
         // Handle the next step
