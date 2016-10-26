@@ -1,4 +1,4 @@
-// Alex Ozdemir <aozdemir@hmc.edu> // <- Your name should replace this line!
+// Julien Chien <jchien17@cmc.edu>
 // Starter code for HMC's MemorySafe, week 0
 //
 // A command line game: Towers of Hanoi
