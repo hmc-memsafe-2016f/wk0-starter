@@ -202,7 +202,7 @@ fn main() {
         // Handle the next step
         match next_step_or_err {
             Ok(NextStep::Quit) => {
-                println!("Quiting");
+                println!("Quitting");
                 break;
             }
             Ok(NextStep::Win) => {
