@@ -180,7 +180,21 @@ impl State {
     ///
     /// No change is made to `self` if an error occurs.
     fn do_move(&mut self, mov: Move) -> Result<NextStep, HanoiError> {
-        unimplemented!()
+        if self.get_tower(mov.from).is_empty() {
+            HanoiError::EmptyFrom(mov.from)
+        }
+        let disk = self.peek_disk(mov.from);
+        match self.push_disk(mov.to, disk) {
+            Ok(_) => {
+                self.pop_disk(mov.from)
+                if self.done() {
+                    Ok(NextStep::Win)
+                } else {
+                    Ok(NextStep::Continue)
+                }
+             },
+             Err(err) => Err(err)
+        }
     }
 
     /// Prints the contents of `peg` to stdout
@@ -227,7 +241,9 @@ fn main() {
 
         // Parse and perform action
         let next_step_or_err = parse_action(line.as_str().trim()).and_then(|action| {
-            unimplemented!()
+            match action {
+                Action::Quit => Ok(NextStep::Quit),
+                Action::Move(mov) => state.do_move(mov),
         });
 
         // Handle the next step
